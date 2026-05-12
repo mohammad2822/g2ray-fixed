@@ -1,65 +1,72 @@
 {
   "log": {
-    "loglevel": "info",
-    "access": "/var/log/xray/access.log",
-    "error": "/var/log/xray/error.log"
+    "loglevel": "warning",
+    "access": "none",
+    "error": "/tmp/xray-error.log"
+  },
+  "dns": {
+    "servers": [
+      {
+        "address": "https://1.1.1.1/dns-query",
+        "domains": [
+          "geosite:geolocation-!cn"
+        ],
+        "queryStrategy": "UseIP"
+      },
+      "8.8.8.8",
+      "localhost"
+    ],
+    "queryStrategy": "UseIPv4"
   },
   "inbounds": [
     {
-      "port": 443,
-      "protocol": "vless",
       "tag": "vless-in",
+      "port": 443,
+      "listen": "0.0.0.0",
+      "protocol": "vless",
       "settings": {
         "clients": [
           {
-            "id": "550e8400-e29b-41d4-a716-446655440000",
-            "level": 0
+            "id": "e43666fe-39dc-46d1-8697-06df5164405d",
+            "flow": "",
+            "level": 0,
+            "email": "user@calm-relay-8f0ef4"
           }
         ],
         "decryption": "none"
       },
       "streamSettings": {
         "network": "xhttp",
+        "security": "none",
         "xhttpSettings": {
           "mode": "packet-up",
           "path": "/",
-          "noGRPCHeader": false
-        },
-        "security": "tls",
-        "tlsSettings": {
-          "rejectUnknownSNI": false,
-          "minVersion": "1.2",
-          "cipherSuites": [
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
-          ]
+          "maxUploadSize": 1000000,
+          "maxConcurrentUploads": 10
         }
       },
       "sniffing": {
         "enabled": true,
         "destOverride": [
           "http",
-          "tls"
+          "tls",
+          "quic"
         ],
-        "domainsExcluded": [
-          "localhost",
-          "127.0.0.1"
-        ]
+        "routeOnly": false
       }
     }
   ],
   "outbounds": [
     {
-      "protocol": "freedom",
       "tag": "direct",
+      "protocol": "freedom",
       "settings": {
-        "domainStrategy": "UseIP",
-        "userLevel": 0
+        "domainStrategy": "UseIPv4"
       }
     },
     {
-      "protocol": "blackhole",
       "tag": "block",
+      "protocol": "blackhole",
       "settings": {
         "response": {
           "type": "http"
@@ -69,26 +76,27 @@
   ],
   "routing": {
     "domainStrategy": "IPIfNonMatch",
-    "domainMatcher": "linear",
     "rules": [
-      {
-        "type": "field",
-        "domain": [
-          "geosite:private"
-        ],
-        "outboundTag": "direct"
-      },
       {
         "type": "field",
         "ip": [
           "geoip:private"
         ],
-        "outboundTag": "direct"
+        "outboundTag": "block"
       },
       {
         "type": "field",
-        "outboundTag": "direct",
-        "defaultValue": true
+        "protocol": [
+          "bittorrent"
+        ],
+        "outboundTag": "block"
+      },
+      {
+        "type": "field",
+        "domain": [
+          "geosite:category-ads-all"
+        ],
+        "outboundTag": "block"
       }
     ]
   },
@@ -99,17 +107,8 @@
         "connIdle": 300,
         "uplinkOnly": 2,
         "downlinkOnly": 5,
-        "statsUserUplink": true,
-        "statsUserDownlink": true,
-        "bufferSize": 10240
+        "bufferSize": 512
       }
-    },
-    "system": {
-      "statsInboundDownlink": true,
-      "statsInboundUplink": true,
-      "statsOutboundDownlink": true,
-      "statsOutboundUplink": true
     }
-  },
-  "stats": {}
+  }
 }
